@@ -23,33 +23,33 @@ hands = mp_hands.Hands(
 
 #
 # # x,y로 나누어서 학습 시킨다.
-# df = pd.read_csv('gesture_new.csv', header=None) # csv파일에 헤더없으므로 none
-# angle = df.iloc[:,:-1] #매 마지막 레이블 빼고
-# label = df.iloc[:, -1]
+df = pd.read_csv('gesture_run.csv', header=None) # csv파일에 헤더없으므로 none
+angle = df.iloc[:,:-1] #매 마지막 레이블 빼고
+label = df.iloc[:, -1]
+
+angle = angle.to_numpy().astype(np.float32) #numpy로 만ㄷ름
+label = label.to_numpy().astype(np.float32)
+
+#opncv안에 knn존재
+knn = cv2.ml.KNearest_create()
+knn.train(angle, cv2.ml.ROW_SAMPLE, label) # 데이터랑 레이블 넣고 학습시킴
+
+
+
+
+
+#total_result = []
+
+# def on_click(event, x,y,flags,param):
+#     global data,file
 #
-# angle = angle.to_numpy().astype(np.float32) #numpy로 만ㄷ름
-# label = label.to_numpy().astype(np.float32)
-#
-# #opncv안에 knn존재
-# knn = cv2.ml.KNearest_create()
-# knn.train(angle, cv2.ml.ROW_SAMPLE, label) # 데이터랑 레이블 넣고 학습시킴
-#
-
-
-
-
-total_result = []
-
-def on_click(event, x,y,flags,param):
-    global data,file
-
-    if event == cv2.EVENT_LBUTTONDOWN:
-        total_result.append(data)
+#     if event == cv2.EVENT_LBUTTONDOWN:
+#         total_result.append(data)
 
 
 cap = cv2.VideoCapture(0)
 cv2.namedWindow('Dataset')
-cv2.setMouseCallback('Dataset',on_click)
+# cv2.setMouseCallback('Dataset',on_click)
 
 while cap.isOpened():
     ret,img = cap.read()
@@ -82,24 +82,24 @@ while cap.isOpened():
             angle = np.degrees(angle)
 
             data = np.array([angle], dtype=np.float32)
-            #ret, results, neighbors, dist = knn.findNearest(data, 1)  # 현재 내가 추출한 데이ㅓ ㅌ중 가장 비슷한 거 5게 뽑음)
+            ret, results, neighbors, dist = knn.findNearest(data, 1)  # 현재 내가 추출한 데이ㅓ ㅌ중 가장 비슷한 거 5게 뽑음)
 
-            #idx = int(results[0][0])
+            idx = int(results[0][0])
 
-            # if idx in gesture.keys():
-            #     cv2.putText(img, text=gesture[idx].upper(),
-            #                 org=(int(res.landmark[0].x * img.shape[1]),
-            #                      int(res.landmark[0].y * img.shape[0])),
-            #                 fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255),
-            #                 thickness=2
-            #                 )
-                # 위치는 손목에. 실제 이미지에 띄워야 하므로 shape 곱해주기
-
-
+            if idx in gesture.keys():
+                cv2.putText(img, text=gesture[idx].upper(),
+                            org=(int(res.landmark[0].x * img.shape[1]),
+                                 int(res.landmark[0].y * img.shape[0])),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255),
+                            thickness=2
+                            )
+                #위치는 손목에. 실제 이미지에 띄워야 하므로 shape 곱해주기
 
 
-            data = np.array([angle],dtype = np.float32)
-            data = np.append(data, 2) # 데이터랑 정답레이블 같이 저장
+
+
+            #data = np.array([angle],dtype = np.float32)
+            #data = np.append(data, 2) # 데이터랑 정답레이블 같이 저장
 
             mp_drawing.draw_landmarks( img, res, mp_hands.HAND_CONNECTIONS)
 
@@ -107,7 +107,7 @@ while cap.isOpened():
     if cv2.waitKey(1) == 27:
         break
 
-total_result = np.array(total_result,dtype=np.float32)
-df = pd.DataFrame(total_result)
-df.to_csv('gesture_run.csv',mode='a',index=None,header=None)
+#total_result = np.array(total_result,dtype=np.float32)
+#df = pd.DataFrame(total_result)
+#df.to_csv('gesture_run.csv',mode='a',index=None,header=None)
 cap.release()

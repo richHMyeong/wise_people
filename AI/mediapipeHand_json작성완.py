@@ -17,29 +17,20 @@ import vg
 
 import json
 
-import math
-
-import socket
-
-def Angle3d(p1, p2): # 각도
+def Angle3d(p1, p2):
     vec1 = np.array([p1.x, p1.y, p1.z])
     vec2 = np.array([p2.x, p2.y, p2.z])
     return vg.angle(vec1, vec2)
-
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 
 cap = cv2.VideoCapture(0)
 
-#소켓통신
-socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sendport = ('127.0.0.1', 5001)
-
 # json 파일 옵션
 updown = 0 #중지의 y값 기준 (12번) -1, 0, 1로 둡시다.
-# angle,distance는 내부에서 변경됨
-angle = 0 ; dist = 0
+# angle, angle2는 내부에서 변경됨
+angle = 0 ; angle2 = 0
 json_path = './jsonfiles/'
 
 # FPS 설정.
@@ -49,7 +40,7 @@ prev_y = 0
 start=False
 
 with mp_hands.Hands( # hands사용할 때 받을 옵션값 설정
-    max_num_hands=1, #최대 1개인식
+    max_num_hands=2, #최대 1개인식
     min_detection_confidence=0.5, #손인식 컨피던스 0.5이상인 겨우에만
     min_tracking_confidence=0.5 #트래킹정확도도 0.5이상인 겨웅에만
 ) as hands:
@@ -80,13 +71,19 @@ with mp_hands.Hands( # hands사용할 때 받을 옵션값 설정
                 #print('현재 각도: ', angle)
 
                 ### 1-2. 날기
-                fly_p1 = hand_landmarks.landmark[8]
-                fly_p2 = hand_landmarks.landmark[9]
-                dist = math.dist([fly_p1.x, fly_p1.y], [fly_p2.x, fly_p2.y])
-                dist = round(dist, 3)
-
+                fly_points.append(hand_landmarks.landmark[4])
                 # 엄지손가락 저장. 계산은 for문 나온 다음에 해야.
 
+
+
+                if len(fly_points) == 2:
+                    # print('0번: ', fly_points[0])
+                    # print('1번: ', fly_points[1])
+                    angle2 = Angle3d(p1, p2)
+                    angle2 = round(angle2, 3)
+                    print('손 두 개: ', angle2) # 손 두 개가 아니잖아@!!!!
+                # print('앵글1: ', angle)
+                # print('앵글2: ', angle2)
 
                 ### 2. updown 상태 표시
                 wrist = hand_landmarks.landmark[0]  # 맨 처음 손목 위치
@@ -98,7 +95,7 @@ with mp_hands.Hands( # hands사용할 때 받을 옵션값 설정
                     if start:  # 처음으로 들어온 것이 아니라면
                         y_change = wrist.y - prev_y  # 이전에 기록해둔 y값과의 변화량을 구함. 현재 y가 더 크면 양수
                         # current_y = wrist.y - prev_y  # 이전 프레임과의 변화량을 구함
-                        # 구한 변화량이... 좌표값은 좌상단 기준!!!!!=
+                        # 구한 변화량이... 좌표값은 좌상단 기준!!!!!!!슈발!!!!!!
                         # wrist.y가 prev_y보다 크다는 것은 wrist.y가 더 내려갔다는 것
                         # prev_y가 wrist.y보다 더 크다? -> 올라온 거야
                         # 변화량이 존재하면서(점프) 이미 기존에 점프라면 1을 유지한다
@@ -127,7 +124,7 @@ with mp_hands.Hands( # hands사용할 때 받을 옵션값 설정
 
                 # 동영상에 그림 그리기
                 cv2.putText(
-                    image, text='angle1: %.3f  dist: %.3f updown:%d' % (angle, dist, updown), org=(10, 30),  # 위치값 설정
+                    image, text='angle1:%.3f  angle2:%.3f updown:%d' % (angle, angle2, updown), org=(10, 30),  # 위치값 설정
                     fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.8,
                     color=255, thickness=2
                 )
@@ -139,11 +136,10 @@ with mp_hands.Hands( # hands사용할 때 받을 옵션값 설정
 
         ## json 파일 작성
         data = { 'angle1': angle,
-                 'distance': dist,
+                 'angle2': angle2,
                  'updown': updown }
-        socket.sendto(json.dump(data, indent=4), )
-        # with open(json_path+'status.json', 'w') as outfile:
-        #     json.dump(data, outfile, indent=4)
+        with open(json_path+'status.json', 'w') as outfile:
+            json.dump(data, outfile, indent=4)
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) # 화면 출력 색
         cv2.imshow('angle', image)
@@ -154,3 +150,4 @@ with mp_hands.Hands( # hands사용할 때 받을 옵션값 설정
 
     cap.release()
     cv2.destroyAllWindows()
+# 혹시 필요하면 이 코드 그대로 가져가서 쓰기 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ생색내기

@@ -19,28 +19,32 @@ import json
 
 import math
 
-import socket
-
 def Angle3d(p1, p2): # 각도
     vec1 = np.array([p1.x, p1.y, p1.z])
     vec2 = np.array([p2.x, p2.y, p2.z])
     return vg.angle(vec1, vec2)
 
+def Angle2d(p0, p1, p2):
+    p0 = [p0.x, p0.y]
+    p1 = [p1.x, p1.y]
+    p2 = [p2.x, p2.y]
+    v0 = np.array(p0) - np.array(p1)
+    v1 = np.array(p2) - np.array(p1)
+    angle = np.math.atan2(np.linalg.det([v0,v1]),np.dot(v0,v1))
+    return angle
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 
 cap = cv2.VideoCapture(0)
 
-#소켓통신
-socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sendport = ('127.0.0.1', 5001)
 
 # json 파일 옵션
 updown = 0 #중지의 y값 기준 (12번) -1, 0, 1로 둡시다.
 # angle,distance는 내부에서 변경됨
 angle = 0 ; dist = 0
-json_path = './jsonfiles/'
+json_path = 'C:/Users/HP/Desktop/meta/midenight_cookierun/run/MidNightZam_HJH/Assets/'
+
 
 # FPS 설정.
 FPS = 4 # 1초를 4프레임으로 나누었을 때의 시간. 4는 1초를 4프레임으로 나눈다는 의미인 듯 https://deep-eye.tistory.com/10
@@ -98,19 +102,30 @@ with mp_hands.Hands( # hands사용할 때 받을 옵션값 설정
                     if start:  # 처음으로 들어온 것이 아니라면
                         y_change = wrist.y - prev_y  # 이전에 기록해둔 y값과의 변화량을 구함. 현재 y가 더 크면 양수
                         # current_y = wrist.y - prev_y  # 이전 프레임과의 변화량을 구함
-                        # 구한 변화량이... 좌표값은 좌상단 기준!!!!!=
+                        # 구한 변화량이... 좌표값은 좌상단 기준!!!!!!!슈발!!!!!!
                         # wrist.y가 prev_y보다 크다는 것은 wrist.y가 더 내려갔다는 것
                         # prev_y가 wrist.y보다 더 크다? -> 올라온 거야
                         # 변화량이 존재하면서(점프) 이미 기존에 점프라면 1을 유지한다
 
-                        ## 조금만 움직여도 적용될 수 있ㄷ록!! 매우 민감하므로 주의!!!! 연습이 좀 필요함.
-                        if (y_change < 0 and abs(y_change) > 0.05) and (updown == 0 or updown == -1):
-                            updown += 1  # 점프를 한 경우
-                        elif y_change > 0.05 and (updown == 0 or updown == 1):
-                            updown -= 1  # 다운을 한 경우
-                        else:
-                            pass  # 변화량이 없다면 현재의 updown을 유지.
+                        # 1/4초마다 각도 계산
+                        slide_p0, slide_p1, slide_p2 = hand_landmarks.landmark[8], hand_landmarks.landmark[5], hand_landmarks.landmark[0]
+                        slide_angle = Angle2d(slide_p0, slide_p1, slide_p2)
+                        slide_angle = np.degrees(slide_angle)
+                        #print('현재 slide_angle: ', np.degrees(slide_angle))
 
+                        # ## 조금만 움직여도 적용될 수 있ㄷ록!! 매우 민감하므로 주의!!!! 연습이 좀 필요함.
+                        print('현재 각도: ', slide_angle)
+                        if abs(slide_angle)<=140 :
+                            if (y_change < 0 and abs(y_change) > 0.08) and (updown == 0 or updown == -1):
+                                updown += 1  # 점프를 한 경우
+                            elif y_change > 0.08 and (updown == 0 or updown == 1):
+                                updown -= 1  # 다운을 한 경우
+                            else:
+                                pass
+                        elif abs(slide_angle)>=160:
+                            updown = -1
+                        else:
+                            pass
                         prev_y = wrist.y  # prev_y를 갱신한다.
 
                     else:  # 처음으로 들어온 것이라면 변화량 안 구함
@@ -140,10 +155,10 @@ with mp_hands.Hands( # hands사용할 때 받을 옵션값 설정
         ## json 파일 작성
         data = { 'angle1': angle,
                  'distance': dist,
-                 'updown': updown }
-        socket.sendto(json.dump(data, indent=4), )
-        # with open(json_path+'status.json', 'w') as outfile:
-        #     json.dump(data, outfile, indent=4)
+                 'updown': updown,
+                 'time': time.time()}
+        with open(json_path+'tmpJson.txt', 'w') as outfile:
+             json.dump(data, outfile, indent=4)
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) # 화면 출력 색
         cv2.imshow('angle', image)
@@ -154,3 +169,4 @@ with mp_hands.Hands( # hands사용할 때 받을 옵션값 설정
 
     cap.release()
     cv2.destroyAllWindows()
+# 혹시 필요하면 이 코드 그대로 가져가서 쓰기 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ생색내기
