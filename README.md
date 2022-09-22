@@ -1,3 +1,3 @@
 # wise_peopl
-<h6>Midnight Camp (Metaverse Academy) </h6></br>
+<h4>Midnight Camp (Metaverse Academy) </h4></br>
 Running game using hand tracking
